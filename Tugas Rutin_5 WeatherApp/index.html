@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather App - Cia</title>
+    <style>
+        /* ===== VARIABLES WARNA (senada sama tugas sebelumnya) ===== */
+        :root {
+            --bg: #f7f5fb;
+            --surface: #ffffff;
+            --text: #2e2a38;
+            --text-muted: #7a7189;
+            --accent: #9b8bc4;
+            --accent-soft: #ece7f7;
+            --border: #e3ddf0;
+            --radius: 16px;
+            --shadow: 0 6px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: "Segoe UI", Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            padding: 1.5rem 1rem;
+        }
+
+        .app {
+            width: 100%;
+            max-width: 480px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: clamp(1.4rem, 5vw, 1.8rem);
+            margin-bottom: 1.5rem;
+        }
+
+        /* ===== FORM PENCARIAN ===== */
+        .search-form {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .search-form input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            font-size: 1rem;
+            outline: none;
+        }
+
+        .search-form input:focus {
+            border-color: var(--accent);
+        }
+
+        .search-form button {
+            padding: 0.75rem 1.25rem;
+            border-radius: 999px;
+            border: none;
+            background-color: var(--accent);
+            color: #fff;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .search-form button:hover {
+            opacity: 0.9;
+        }
+
+        /* ===== RIWAYAT PENCARIAN (bonus, pakai LocalStorage) ===== */
+        .history {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.4rem;
+            margin-bottom: 1.5rem;
+            min-height: 1.5rem;
+        }
+
+        .history button {
+            padding: 0.3rem 0.8rem;
+            border-radius: 999px;
+            border: 1px solid var(--border);
+            background-color: var(--surface);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            cursor: pointer;
+        }
+
+        .history button:hover {
+            background-color: var(--accent-soft);
+            color: var(--accent);
+        }
+
+        /* ===== STATUS: loading & error ===== */
+        .status {
+            text-align: center;
+            padding: 2rem 1rem;
+            color: var(--text-muted);
+        }
+
+        .status.error {
+            color: #b3476b;
+        }
+
+        /* ===== KARTU CUACA UTAMA ===== */
+        .weather-card {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow);
+            padding: 1.5rem;
+            text-align: center;
+            margin-bottom: 1.5rem;
+        }
+
+        .weather-card__city {
+            font-size: 1.2rem;
+            font-weight: 700;
+        }
+
+        .weather-card__icon {
+            width: 100px;
+            height: 100px;
+        }
+
+        .weather-card__temp {
+            font-size: 3rem;
+            font-weight: 700;
+            margin: 0.25rem 0;
+        }
+
+        .weather-card__desc {
+            text-transform: capitalize;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        .toggle-unit {
+            display: inline-flex;
+            border: 1px solid var(--border);
+            border-radius: 999px;
+            overflow: hidden;
+            margin-bottom: 1rem;
+        }
+
+        .toggle-unit button {
+            padding: 0.35rem 0.9rem;
+            border: none;
+            background: transparent;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .toggle-unit button.active {
+            background-color: var(--accent);
+            color: #fff;
+        }
+
+        .weather-card__details {
+            display: flex;
+            justify-content: center;
+            gap: 1.5rem;
+            font-size: 0.9rem;
+            color: var(--text-muted);
+        }
+
+        /* ===== FORECAST 5 HARI (bonus) ===== */
+        .forecast-title {
+            font-size: 1rem;
+            margin-bottom: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .forecast-list {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 0.5rem;
+        }
+
+        .forecast-item {
+            background-color: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 0.6rem 0.3rem;
+            text-align: center;
+            font-size: 0.75rem;
+        }
+
+        .forecast-item img {
+            width: 40px;
+            height: 40px;
+        }
+
+        .forecast-item .day {
+            font-weight: 600;
+            margin-bottom: 0.2rem;
+        }
+
+        .forecast-item .temp {
+            font-weight: 600;
+            margin-top: 0.2rem;
+        }
+
+        /* ===== RESPONSIF: layar kecil, forecast jadi scroll ke samping ===== */
+        @media (max-width: 480px) {
+            .forecast-list {
+                grid-template-columns: repeat(5, minmax(70px, 1fr));
+                overflow-x: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="app">
+        <h1>🌤️ Cek Cuaca Kota</h1>
+
+        <!-- Form pencarian -->
+        <form class="search-form" id="searchForm">
+            <input type="text" id="cityInput" placeholder="Nama kota, contoh: Medan" autocomplete="off">
+            <button type="submit">Cari</button>
+        </form>
+
+        <!-- Riwayat pencarian (bonus) -->
+        <div class="history" id="historyList"></div>
+
+        <!-- Tempat hasil (loading / error / data cuaca) ditampilkan -->
+        <div id="result"></div>
+    </div>
+
+    <script>
+        // =====================================================
+        // KONFIGURASI
+        // Ganti "MASUKKAN_API_KEY_DI_SINI" dengan API key kamu
+        // dari openweathermap.org/api
+        // =====================================================
+        const API_KEY = "b2473405c5b77f9f678ceb88ef641224";
+        const BASE_URL = "https://api.openweathermap.org/data/2.5";
+
+        // Elemen-elemen HTML yang akan sering dipakai
+        const searchForm = document.getElementById("searchForm");
+        const cityInput = document.getElementById("cityInput");
+        const resultEl = document.getElementById("result");
+        const historyListEl = document.getElementById("historyList");
+
+        // State sederhana: nyimpen data suhu asli (Celsius) & unit yang lagi aktif
+        let currentTempCelsius = null;
+        let currentUnit = "C"; // "C" atau "F"
+
+        // =====================================================
+        // RIWAYAT PENCARIAN (LocalStorage)
+        // =====================================================
+        const getHistory = () => {
+            const saved = localStorage.getItem("weatherHistory");
+            return saved ? JSON.parse(saved) : [];
+        };
+
+        const saveToHistory = (city) => {
+            let history = getHistory();
+            history = history.filter((item) => item.toLowerCase() !== city.toLowerCase());
+            history.unshift(city);
+            history = history.slice(0, 5);
+            localStorage.setItem("weatherHistory", JSON.stringify(history));
+            renderHistory();
+        };
+
+        const renderHistory = () => {
+            const history = getHistory();
+            historyListEl.innerHTML = history
+                .map((city) => `<button type="button" data-city="${city}">${city}</button>`)
+                .join("");
+        };
+
+        historyListEl.addEventListener("click", (e) => {
+            if (e.target.tagName === "BUTTON") {
+                const city = e.target.dataset.city;
+                cityInput.value = city;
+                fetchWeather(city);
+            }
+        });
+
+        // =====================================================
+        // TAMPILKAN STATE LOADING
+        // =====================================================
+        const showLoading = () => {
+            resultEl.innerHTML = `<div class="status">Memuat data cuaca...</div>`;
+        };
+
+        // =====================================================
+        // TAMPILKAN STATE ERROR
+        // =====================================================
+        const showError = (message) => {
+            resultEl.innerHTML = `<div class="status error">${message}</div>`;
+        };
+
+        // =====================================================
+        // AMBIL DATA CUACA SEKARANG + FORECAST 5 HARI
+        // Pakai async/await + Fetch API
+        // =====================================================
+        const fetchWeather = async (city) => {
+            showLoading();
+
+            try {
+                const weatherRes = await fetch(
+                    `${BASE_URL}/weather?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=id`
+                );
+
+                if (weatherRes.status === 404) {
+                    showError(`Kota "${city}" tidak ditemukan. Coba cek ejaannya.`);
+                    return;
+                }
+
+                if (!weatherRes.ok) {
+                    showError("Terjadi kesalahan saat mengambil data. Coba lagi nanti.");
+                    return;
+                }
+
+                const weatherData = await weatherRes.json();
+
+                const forecastRes = await fetch(
+                    `${BASE_URL}/forecast?q=${encodeURIComponent(city)}&appid=${API_KEY}&units=metric&lang=id`
+                );
+                const forecastData = await forecastRes.json();
+
+                renderWeather(weatherData);
+                renderForecast(forecastData);
+                saveToHistory(weatherData.name);
+            } catch (error) {
+                showError("Gagal terhubung ke internet. Periksa koneksi kamu.");
+            }
+        };
+
+        // =====================================================
+        // TAMPILKAN KARTU CUACA UTAMA
+        // =====================================================
+        const renderWeather = (data) => {
+            currentTempCelsius = data.main.temp;
+            currentUnit = "C";
+
+            const iconUrl = `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`;
+
+            resultEl.innerHTML = `
+      <div class="weather-card">
+        <div class="weather-card__city">${data.name}, ${data.sys.country}</div>
+        <img class="weather-card__icon" src="${iconUrl}" alt="${data.weather[0].description}">
+        <div class="weather-card__temp" id="tempDisplay">${Math.round(currentTempCelsius)}°C</div>
+        <div class="weather-card__desc">${data.weather[0].description}</div>
+
+        <div class="toggle-unit">
+          <button type="button" id="btnCelsius" class="active">°C</button>
+          <button type="button" id="btnFahrenheit">°F</button>
+        </div>
+
+        <div class="weather-card__details">
+          <span>💧 Kelembaban: ${data.main.humidity}%</span>
+        </div>
+      </div>
+      <div id="forecastContainer"></div>
+    `;
+
+            document.getElementById("btnCelsius").addEventListener("click", () => setUnit("C"));
+            document.getElementById("btnFahrenheit").addEventListener("click", () => setUnit("F"));
+        };
+
+        // =====================================================
+        // TOGGLE SUHU CELSIUS / FAHRENHEIT (bonus)
+        // =====================================================
+        const setUnit = (unit) => {
+            currentUnit = unit;
+            const tempDisplay = document.getElementById("tempDisplay");
+            const btnC = document.getElementById("btnCelsius");
+            const btnF = document.getElementById("btnFahrenheit");
+
+            if (unit === "C") {
+                tempDisplay.textContent = `${Math.round(currentTempCelsius)}°C`;
+                btnC.classList.add("active");
+                btnF.classList.remove("active");
+            } else {
+                const fahrenheit = (currentTempCelsius * 9) / 5 + 32;
+                tempDisplay.textContent = `${Math.round(fahrenheit)}°F`;
+                btnF.classList.add("active");
+                btnC.classList.remove("active");
+            }
+        };
+
+        // =====================================================
+        // TAMPILKAN FORECAST 5 HARI (bonus)
+        // =====================================================
+        const renderForecast = (data) => {
+            const forecastContainer = document.getElementById("forecastContainer");
+            if (!forecastContainer) return;
+
+            const dailyForecast = data.list.filter((item) => item.dt_txt.includes("12:00:00"));
+
+            const hariSingkat = ["Min", "Sen", "Sel", "Rab", "Kam", "Jum", "Sab"];
+
+            const forecastHTML = dailyForecast
+                .map((item) => {
+                    const tanggal = new Date(item.dt_txt);
+                    const namaHari = hariSingkat[tanggal.getDay()];
+                    const iconUrl = `https://openweathermap.org/img/wn/${item.weather[0].icon}.png`;
+
+                    return `
+          <div class="forecast-item">
+            <div class="day">${namaHari}</div>
+            <img src="${iconUrl}" alt="${item.weather[0].description}">
+            <div class="temp">${Math.round(item.main.temp)}°</div>
+          </div>
+        `;
+                })
+                .join("");
+
+            forecastContainer.innerHTML = `
+      <div class="forecast-title">Perkiraan 5 Hari Ke Depan</div>
+      <div class="forecast-list">${forecastHTML}</div>
+    `;
+        };
+
+        // =====================================================
+        // EVENT: submit form pencarian
+        // =====================================================
+        searchForm.addEventListener("submit", (e) => {
+            e.preventDefault();
+            const city = cityInput.value.trim();
+            if (city === "") return;
+            fetchWeather(city);
+        });
+
+        // =====================================================
+        // Saat halaman pertama kali dibuka: tampilkan riwayat
+        // pencarian yang tersimpan (kalau ada)
+        // =====================================================
+        renderHistory();
+    </script>
+
+</body>
+
+</html>
